@@ -1,0 +1,4 @@
+yolo*.pt
+yolo*.torchscript
+yolo*_ncnn_model
+
