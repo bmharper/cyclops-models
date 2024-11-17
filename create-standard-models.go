@@ -99,6 +99,32 @@ func createNCNN() {
 	}
 }
 
+// Create ONNX models, which are the 1st step in creating hailo .hef models.
+// The rest of the process runs inside the hailo container.
+// I *tried* to get their various other mechanisms to work, but they all failed
+// to install their Python packages.
+func createONNX() {
+	// I'm not seeing YOLO11 support yet from Hailo. Will wait for their official
+	// support before even trying.
+	versionVariants := []string{"v8"}
+	qualityVariants := []string{"n", "s", "m", "l"}
+	sizeVariants := []Size{{640, 640}}
+
+	for _, v := range versionVariants {
+		for _, q := range qualityVariants {
+			for _, s := range sizeVariants {
+				cmd := exec.Command("yolo", "export", "model=yolo"+v+q+".pt", "format=onnx", "imgsz="+fmt.Sprintf("%v,%v", s.Height, s.Width))
+				fmt.Printf("%v\n", strings.Join(cmd.Args, " "))
+				check(cmd.Run())
+				//outputDir := fmt.Sprintf("yolo%v%v_ncnn_model", v, q)
+				//metadataRaw, err := os.ReadFile(outputDir + "/metadata.yaml")
+				//check(err)
+			}
+		}
+	}
+}
+
 func main() {
 	createNCNN()
+	createONNX()
 }
