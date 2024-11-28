@@ -53,6 +53,25 @@ func copyFile(dst, src string) error {
 	return cerr
 }
 
+type variant struct {
+	engine  string
+	version string
+	quality string
+	size    Size
+}
+
+func createVariants(engine string, versions []string, qualities []string, sizes []Size) []variant {
+	variants := []variant{}
+	for _, v := range versions {
+		for _, q := range qualities {
+			for _, s := range sizes {
+				variants = append(variants, variant{engine, v, q, s})
+			}
+		}
+	}
+	return variants
+}
+
 func createNCNN() {
 	versionVariants := []string{"v8", "11"}
 
@@ -60,42 +79,46 @@ func createNCNN() {
 	qualityVariants := []string{"n", "s", "m"}
 
 	// CPU is just so slow at 640x480, that we leave this out for now.
-	//sizeVariants := []Size{{320, 256}, {640, 480}}
 	sizeVariants := []Size{{320, 256}}
 
-	for _, v := range versionVariants {
-		for _, q := range qualityVariants {
-			for _, s := range sizeVariants {
-				cmd := exec.Command("yolo", "export", "model=yolo"+v+q+".pt", "format=ncnn", "half=true", "imgsz="+fmt.Sprintf("%v,%v", s.Height, s.Width))
-				//fmt.Printf("Exporting YOLO%v%v %v x %v to NCNN\n", v, q, s.Width, s.Height)
-				fmt.Printf("%v\n", strings.Join(cmd.Args, " "))
-				check(cmd.Run())
-				outputDir := fmt.Sprintf("yolo%v%v_ncnn_model", v, q)
-				metadataRaw, err := os.ReadFile(outputDir + "/metadata.yaml")
-				check(err)
-				metadata := NCNNMetadata{}
-				check(yaml.Unmarshal(metadataRaw, &metadata))
-				metaout := nn.ModelConfig{
-					Architecture: "yolo" + v,
-					Width:        s.Width,
-					Height:       s.Height,
-					Classes:      []string{},
-				}
-				for idx, class := range metadata.Names {
-					for idx >= len(metaout.Classes) {
-						metaout.Classes = append(metaout.Classes, "")
-					}
-					metaout.Classes[idx] = class
-				}
-				standardName := fmt.Sprintf("yolo%v%v_%v_%v", v, q, s.Width, s.Height)
-				copyFile("coco/ncnn/"+standardName+".param", outputDir+"/model.ncnn.param")
-				copyFile("coco/ncnn/"+standardName+".bin", outputDir+"/model.ncnn.bin")
-				jm, err := json.MarshalIndent(&metaout, "", "\t")
-				check(err)
-				check(os.WriteFile("coco/ncnn/"+standardName+".json", jm, 0644))
-				//os.Exit(0) // prototyping
-			}
+	variants := createVariants("ncnn", versionVariants, qualityVariants, sizeVariants)
+
+	// We also want a 640x480 NCNN yolov8m, because this allows us to compare it to hailo 8L models.
+	// If the NCNN 640x480 yolov8m model is more accurate than the hailo 8L model, then we can use
+	// this as additional verification before firing off an alarm. The Hailo models are 640x640,
+	// but I think 640x480 is fine for apples-to-apples, and 640x640 is just a waste of precious
+	// CPU inference cycles.
+	variants = append(variants, variant{"ncnn", "v8", "m", Size{640, 480}})
+
+	for _, v := range variants {
+		cmd := exec.Command("yolo", "export", "model=yolo"+v.version+v.quality+".pt", "format=ncnn", "half=true", "imgsz="+fmt.Sprintf("%v,%v", v.size.Height, v.size.Width))
+		//fmt.Printf("Exporting YOLO%v%v %v x %v to NCNN\n", v, q, s.Width, s.Height)
+		fmt.Printf("%v\n", strings.Join(cmd.Args, " "))
+		check(cmd.Run())
+		outputDir := fmt.Sprintf("yolo%v%v_ncnn_model", v.version, v.quality)
+		metadataRaw, err := os.ReadFile(outputDir + "/metadata.yaml")
+		check(err)
+		metadata := NCNNMetadata{}
+		check(yaml.Unmarshal(metadataRaw, &metadata))
+		metaout := nn.ModelConfig{
+			Architecture: "yolo" + v.version,
+			Width:        v.size.Width,
+			Height:       v.size.Height,
+			Classes:      []string{},
 		}
+		for idx, class := range metadata.Names {
+			for idx >= len(metaout.Classes) {
+				metaout.Classes = append(metaout.Classes, "")
+			}
+			metaout.Classes[idx] = class
+		}
+		standardName := fmt.Sprintf("yolo%v%v_%v_%v", v.version, v.quality, v.size.Width, v.size.Height)
+		copyFile("coco/ncnn/"+standardName+".param", outputDir+"/model.ncnn.param")
+		copyFile("coco/ncnn/"+standardName+".bin", outputDir+"/model.ncnn.bin")
+		jm, err := json.MarshalIndent(&metaout, "", "\t")
+		check(err)
+		check(os.WriteFile("coco/ncnn/"+standardName+".json", jm, 0644))
+		//os.Exit(0) // prototyping
 	}
 }
 
