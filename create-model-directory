@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# Upload a file called 'directory' into the S3 model bucket root, which lists all of the model files.
+# This is necessary for the 'download-standard-models' script to work.
+
+find coco -type f | sort > directory
+aws s3 cp directory s3://models.cyclopcam.org/directory
