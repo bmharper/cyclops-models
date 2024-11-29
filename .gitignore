@@ -5,4 +5,5 @@ yolo*.onnx
 /standard
 /coco
 /directory
+hailo_sdk.client.log
 
