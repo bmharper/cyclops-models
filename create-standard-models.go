@@ -89,6 +89,7 @@ func createNCNN() {
 	// but I think 640x480 is fine for apples-to-apples, and 640x640 is just a waste of precious
 	// CPU inference cycles.
 	variants = append(variants, variant{"ncnn", "v8", "m", Size{640, 480}})
+	variants = append(variants, variant{"ncnn", "v8", "l", Size{640, 480}})
 
 	for _, v := range variants {
 		cmd := exec.Command("yolo", "export", "model=yolo"+v.version+v.quality+".pt", "format=ncnn", "half=true", "imgsz="+fmt.Sprintf("%v,%v", v.size.Height, v.size.Width))
