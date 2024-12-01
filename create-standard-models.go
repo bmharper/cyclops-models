@@ -76,7 +76,7 @@ func createNCNN() {
 	versionVariants := []string{"v8", "11"}
 
 	// 320x256 "m" feels like the sweet spot for CPU right now
-	qualityVariants := []string{"n", "s", "m"}
+	qualityVariants := []string{"n", "s", "m", "l"}
 
 	// CPU is just so slow at 640x480, that we leave this out for now.
 	sizeVariants := []Size{{320, 256}}
@@ -88,6 +88,7 @@ func createNCNN() {
 	// this as additional verification before firing off an alarm. The Hailo models are 640x640,
 	// but I think 640x480 is fine for apples-to-apples, and 640x640 is just a waste of precious
 	// CPU inference cycles.
+	variants = append(variants, variant{"ncnn", "v8", "s", Size{640, 480}})
 	variants = append(variants, variant{"ncnn", "v8", "m", Size{640, 480}})
 	variants = append(variants, variant{"ncnn", "v8", "l", Size{640, 480}})
 
