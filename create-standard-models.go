@@ -91,6 +91,7 @@ func createNCNN() {
 	variants = append(variants, variant{"ncnn", "v8", "s", Size{640, 480}})
 	variants = append(variants, variant{"ncnn", "v8", "m", Size{640, 480}})
 	variants = append(variants, variant{"ncnn", "v8", "l", Size{640, 480}})
+	variants = append(variants, variant{"ncnn", "v8", "x", Size{640, 480}})
 
 	for _, v := range variants {
 		cmd := exec.Command("yolo", "export", "model=yolo"+v.version+v.quality+".pt", "format=ncnn", "half=true", "imgsz="+fmt.Sprintf("%v,%v", v.size.Height, v.size.Width))
@@ -132,7 +133,7 @@ func createONNX() {
 	// I'm not seeing YOLO11 support yet from Hailo. Will wait for their official
 	// support before even trying.
 	versionVariants := []string{"v8"}
-	qualityVariants := []string{"n", "s", "m", "l"}
+	qualityVariants := []string{"n", "s", "m", "l", "x"}
 	sizeVariants := []Size{{640, 640}}
 
 	for _, v := range versionVariants {
